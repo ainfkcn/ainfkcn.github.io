@@ -5,13 +5,13 @@ categories: [Python]
 tags: [uv, windows]
 ---
 
-# How I Met This Problem
+## How I Met This Problem
 
 I'm maintaining a production GIS system built on **Python 3.8.6** with legacy dependencies (e.g., `Fiona==1.9.6`, `Shapely==1.8.4`, `Rtree==0.9.2`). As vscode stopped to support debugger for this python version, I want to develop and debug on Python 3.10.11 with modern packages, and do dry-runs on Python 3.8.6 to test the compatibility.
 
 I met some trouble with this transition, and I did some blackbox test on uv's resolver. (Sad I don't know rust.)
 
-# The Minimal Reproducible Example
+## The Minimal Reproducible Example
 
 **Based on uv 0.10.2 (a788db7e5 2026-02-10)**
 
@@ -47,7 +47,7 @@ I met some trouble with this transition, and I did some blackbox test on uv's re
     h3
     ```
 
-## Scenario 1
+### Scenario 1
 
 **This scenario indicates that uv default to install same version of package for different groups NO MATTER THEY CONFLICT OR NOT.** Although `uv` aims for a Universal Lockfile to ensure consistency across environments, this behavior becomes a bottleneck when dealing with hard version constraints across incompatible Python runtimes.
 
@@ -105,7 +105,7 @@ conflicts = [
 ]
 ```
 
-## Scenario 2
+### Scenario 2
 
 **This scenario indicates uv always try to find package's version that satisfy both group.** I don't think this is reasonable, too. Resolver should try to install differnet version of packages if groups are incompatible instead of fail.
 
@@ -145,7 +145,7 @@ uv sync --reinstall -p 3.10.11 --group py310
 
 ![incompatible](/assets/img/2026-02-12-uv-with-two-python-version/incompatible.jpg)
 
-## Scenario 3
+### Scenario 3
 
 **This scenario indicates uv stops finding same version of package only the two groups are conflicting and with non-overlaping version number.** At last, uv install different version of packages to Python 3.8.6 and Python 3.10.11.
 
@@ -228,7 +228,7 @@ uv sync --reinstall -p 3.10.11 --group py310
 
 ![full copy](/assets/img/2026-02-12-uv-with-two-python-version/copy.jpg)
 
-## Scenario 4
+### Scenario 4
 
 **I made a big mistake. Everyone reading this part should learn a lesson about `python_version` and `python_full_version`.**
 
@@ -278,7 +278,7 @@ uv sync --reinstall -p 3.10.11 --group py310
 
 ![no_package](/assets/img/2026-02-12-uv-with-two-python-version/no_package.jpg)
 
-## Summary of the four scenario
+### Summary of the four scenario
 
 Since uv always success when package are compatible between two different python versions, I only list the situations when it's not. And here is the final test result.
 
@@ -295,11 +295,11 @@ Since uv always success when package are compatible between two different python
 
 It seems that uv solver's priority like `version markers` > `version overlap` > `Conflict declarations`.
 
-# My Workaround: The "Multiverse" Strategy
+## My Workaround: The "Multiverse" Strategy
 
 To solve the scenario 1, I implemented a "Multiverse" strategy using **NTFS Directory Junctions** to physically swap environments. (I didn't find out scenario 3 when I implemented it, otherwise this article wouldn't be written.)
 
-## Rearrange uv File and directories
+### Rearrange uv File and directories
 
 First, after running those uv initialize commands, move the files and directories that uv need to a marked directory, make your project space like this:
 
@@ -317,7 +317,7 @@ Project_Root/
     └── .python-version     <-- with 3.10.11 in it
 ```
 
-## Put These Function into Powershell's profile
+### Put These Function into Powershell's profile
 
 ```powershell
 function Set-UvUniverse {
@@ -363,7 +363,7 @@ function uv386 { Set-UvUniverse -Version "386" }
 function uv310 { Set-UvUniverse -Version "310" }
 ```
 
-## Run function to switch between python versions
+### Run function to switch between python versions
 
 Run `uv386` to switch into python 3.8.6, and run `uv310` to switch into python 3.10.11. After you run the command, the project space will look like this:
 
@@ -385,28 +385,28 @@ Project_Root/
 └── .python-version (Link)  <-- link to the specified .python-version
 ```
 
-## Plus
+### Plus
 
 For developers using linux, you can do exactly the same thing using the symlink and hard link.
 
-## Benefits
+### Benefits
 
 - **Zero-Config:** Since the IDE (VS Code/PyCharm) is configured to use `.venv/Scripts/python.exe`, switching the Junction allows the editor to recognize the new environment instantly without re-configuring the interpreter path.
 - **Only-One-Copy:** Only need to copy once when init the project, no more copies like scenario 3 when switching between python versions.
 
-# My Proposal
+## My Proposal
 
 According to the test result and my workaround, I suggest make these improvements to uv.
 
-## 1. Smarter Resolver: Automatic Bifurcation on Group Conflicts
+### 1. Smarter Resolver: Automatic Bifurcation on Group Conflicts
 As user declared two separate groups, we can certainly assume that the user has prediction that these groups are separate to each other, so the resolver should try to assign different package version to different groups instead of failing. Even we don't take this leap of faith, with conflict declarations mark the two groups are conflicting, the resolver should automatically ignore version overlaps between these groups. So, at least I think in scenario 1, when the conflict declarations are set, the resolver should do the same thing as scenario 3.
 
-## 2. Natively Support Multiple Python Version In One Project
+### 2. Natively Support Multiple Python Version In One Project
 
-### 2.1. Named Contexts
+#### 2.1. Named Contexts
 Support for named virtual environments, such as `uv venv --name py310`. This allows users to store multiple environment states without them overwriting each other.
 
-### 2.2. Filesystem-level Switching
+#### 2.2. Filesystem-level Switching
 Introduce a command like `uv switch <name>`. This would utilize **Symlinks (Unix)** or **Junctions (Windows)** to re-map the active `.venv` folder to a specific named context.
 
 ---
