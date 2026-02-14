@@ -51,7 +51,7 @@ I met some trouble with this transition, and I did some blackbox test on uv's re
 
 ### Scenario 1
 
-**This scenario indicates that uv default to install same version of package for different groups NO MATTER THEY CONFLICT OR NOT.** Although `uv` aims for a Universal Lockfile to ensure consistency across environments, this behavior becomes a bottleneck when dealing with hard version constraints across incompatible Python runtimes.
+**This scenario indicates that uv always try to install same version of package for different groups NO MATTER THEY CONFLICT OR NOT.**
 
 Run `uv` commands switching the project from Python 3.8.6 to Python 3.10.11 to see this scenario:
 
@@ -109,7 +109,7 @@ conflicts = [
 
 ### Scenario 2
 
-**This scenario indicates uv always try to find package's version that satisfy both group.** I don't think this is reasonable, too. Resolver should try to install differnet version of packages if groups are incompatible instead of fail.
+**This scenario indicates uv always try to find package's version that satisfy both group.**
 
 Manually changing the toml file as followed will cause uv report the two group are incompatible.
 
@@ -149,7 +149,7 @@ uv sync --reinstall -p 3.10.11 --group py310
 
 ### Scenario 3
 
-**This scenario indicates uv stops finding same version of package only the two groups are conflicting and with non-overlaping version number.** At last, uv install different version of packages to Python 3.8.6 and Python 3.10.11.
+**This scenario indicates uv stops finding same version of package only the two groups are conflicting and with non-overlaping version number, or have specified version markers.**
 
 If you modify the toml file like these, uv would install different version of packages to different Python versions. The full copy was caused by installing python and packages in C:/ and creating project at E:/.
 
@@ -232,9 +232,9 @@ uv sync --reinstall -p 3.10.11 --group py310
 
 ### Scenario 4
 
-**I made a big mistake. Everyone reading this part should learn a lesson about `python_version` and `python_full_version`.**
+**I made a big mistake here. Everyone reading this part should learn a lesson about `python_version` and `python_full_version`.**
 
-This toml file caused uv to install no package at all because I mistakely used `python_version` instead of `python_full_version`.
+This toml file caused uv installing no package at all because I mistakely used `python_version` instead of `python_full_version`.
 
 ```toml
 [project]
@@ -295,7 +295,15 @@ Since uv always success when package are compatible between two different python
 |         Yes          |       Yes       |           No           | Resolve to different version |      3       |              Success              |
 |          No          |       Yes       |          Yes           | Resolve to different version |      3       |              Success              |
 
-It seems that uv solver's priority like `version markers` > `version overlap` > `Conflict declarations`.
+It seems that the uv solver's priorities are like this:
+
+1. `version markers`
+2. `version overlap` (between different dependency-groups)
+3. `conflict declarations` (user defined)
+
+This means the fail in scenario 1 will not just show up when switching Python version, but also appears when the `dependency-groups` and `conflict declarations` are both set!
+
+Because when a user defines a `conflict` to ask for different package versions, the resolver treats the `overlap` requirement between groups as a higher mandate. It tries to satisfy the overlapping version range first, effectively ignoring the conflict declaration until it's resolution fails.
 
 ## My Workaround: The "Multiverse" Strategy
 
@@ -401,7 +409,10 @@ For developers using linux, you can do exactly the same thing using the symlink 
 According to the test result and my workaround, I suggest make these improvements to uv.
 
 ### 1. Smarter Resolver: Automatic Bifurcation on Group Conflicts
-As user declared two separate groups, we can certainly assume that the user has prediction that these groups are separate to each other, so the resolver should try to assign different package version to different groups instead of failing. Even we don't take this leap of faith, with conflict declarations mark the two groups are conflicting, the resolver should automatically ignore version overlaps between these groups. So, at least I think in scenario 1, when the conflict declarations are set, the resolver should do the same thing as scenario 3.
+
+As user declared two separate groups, we can certainly assume that the user has prediction that these groups are separate to each other, so the resolver should try to assign different package version to different groups instead of failing. 
+
+Even if we don't take this leap of faith, with conflict declarations mark the two groups are conflicting, the resolver should automatically ignore version overlaps between these groups. So, I think in scenario 1, at least when the conflict declarations are set, the resolver should do the same thing as scenario 3.
 
 ### 2. Natively Support Multiple Python Version In One Project
 
