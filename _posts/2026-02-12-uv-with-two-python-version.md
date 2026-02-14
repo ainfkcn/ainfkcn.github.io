@@ -5,7 +5,7 @@ categories: [Python]
 tags: [uv, windows]
 ---
 
-> Tracking this issue at [#17990](https://github.com/astral-sh/uv/issues/17990)
+> Tracking at [#17990](https://github.com/astral-sh/uv/issues/17990)
 
 ## How I Met This Problem
 
@@ -284,16 +284,16 @@ uv sync --reinstall -p 3.10.11 --group py310
 
 Since uv always success when package are compatible between two different python versions, I only list the situations when it's not. And here is the final test result.
 
-| **#** | **Versions Overlap** | **Has Markers** | **Has Conflict Decl.** |         **Behaver**          | **Actual Result (uv)** | Scenario |
-| :---: | :------------------: | :-------------: | :--------------------: | :--------------------------: | :--------------------: | :------: |
-|   4   |         Yes          |       No        |           No           |   Resolve to same version    |          Fail          |    1     |
-|   5   |         Yes          |       No        |          Yes           |   Resolve to same version    |          Fail          |    1     |
-|   0   |          No          |       No        |           No           |     Report incompatible      |          Fail          |    2     |
-|   1   |          No          |       No        |          Yes           | Resolve to different version |        Success         |    3     |
-|   7   |         Yes          |       Yes       |          Yes           | Resolve to different version |        Success         |    3     |
-|   2   |          No          |       Yes       |           No           | Resolve to different version |        Success         |    3     |
-|   6   |         Yes          |       Yes       |           No           | Resolve to different version |        Success         |    3     |
-|   3   |          No          |       Yes       |          Yes           | Resolve to different version |        Success         |    3     |
+| **Versions Overlap** | **Has Markers** | **Has Conflict Decl.** |         **Behavior**         | **Scenario** | **Result With Conflict Packages** |
+| :------------------: | :-------------: | :--------------------: | :--------------------------: | :----------: | :-------------------------------: |
+|         Yes          |       No        |           No           |   Resolve to same version    |      1       |               Fail                |
+|         Yes          |       No        |          Yes           |   Resolve to same version    |      1       |               Fail                |
+|          No          |       No        |           No           |     Report incompatible      |      2       |               Fail                |
+|          No          |       No        |          Yes           | Resolve to different version |      3       |              Success              |
+|         Yes          |       Yes       |          Yes           | Resolve to different version |      3       |              Success              |
+|          No          |       Yes       |           No           | Resolve to different version |      3       |              Success              |
+|         Yes          |       Yes       |           No           | Resolve to different version |      3       |              Success              |
+|          No          |       Yes       |          Yes           | Resolve to different version |      3       |              Success              |
 
 It seems that uv solver's priority like `version markers` > `version overlap` > `Conflict declarations`.
 
