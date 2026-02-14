@@ -5,6 +5,8 @@ categories: [Python]
 tags: [uv, windows]
 ---
 
+> Tracking this issue at [#17990](https://github.com/astral-sh/uv/issues/17990)
+
 ## How I Met This Problem
 
 I'm maintaining a production GIS system built on **Python 3.8.6** with legacy dependencies (e.g., `Fiona==1.9.6`, `Shapely==1.8.4`, `Rtree==0.9.2`). As vscode stopped to support debugger for this python version, I want to develop and debug on Python 3.10.11 with modern packages, and do dry-runs on Python 3.8.6 to test the compatibility.
