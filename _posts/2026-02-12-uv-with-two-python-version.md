@@ -414,6 +414,12 @@ As user declared two separate groups, we can certainly assume that the user has 
 
 Even if we don't take this leap of faith, with conflict declarations mark the two groups are conflicting, the resolver should automatically ignore version overlaps between these groups. So, I think in scenario 1, at least when the conflict declarations are set, the resolver should do the same thing as scenario 3.
 
+Which means the uv solver's priorities should be adjust to this:
+
+1. `version markers`
+2. `conflict declarations` (user defined)
+3. `version overlap` (between different dependency-groups)
+
 ### 2. Natively Support Multiple Python Version In One Project
 
 #### 2.1. Named Contexts
